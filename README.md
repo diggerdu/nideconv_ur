@@ -28,7 +28,7 @@ Whatever you do, it is very important that you have Cython and numpy before you 
 
 And then install nideconv itself
 
-`pip install git+https://github.com/VU-Cog-Sci/nideconv`
+`pip install git+https://github.com/diggerdu/nideconv_ur`
 
 # Documentation
 
