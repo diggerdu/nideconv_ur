@@ -19,7 +19,7 @@ Install requirements
 
 And install nideconv itself
 
-`pip install git+https://github.com/VU-Cog-Sci/nideconv`
+`pip install git+https://github.com/diggerdu/nideconv_ur`
 
 ### Install nideconv without Anaconda
 Whatever you do, it is very important that you have Cython and numpy before you install `nideconv`, so maybe do
