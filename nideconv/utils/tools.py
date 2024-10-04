@@ -79,6 +79,7 @@ def double_gamma_with_d_time_derivative(x,
     return dhrf
 
 
+'''
 def _get_peaks(col, cutoff=1.0):
     
     peaks, _ = signal.find_peaks(col)
@@ -96,7 +97,6 @@ def _get_peaks(col, cutoff=1.0):
 
     return r
 
-
 def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
 
     if tc.ndim == 1:
@@ -105,6 +105,41 @@ def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
     else:
         peaks = tc.T.apply(_get_peaks, axis=1)
         return pd.concat(peaks.tolist()).T
+'''
+
+
+
+def _get_peaks(col, cutoff=1.0):
+    peaks, _ = signal.find_peaks(col)
+    prominence, _, _ = signal.peak_prominences(col, peaks)
+
+    # Check if the index has a 'time' level
+    if isinstance(col.index, pd.MultiIndex) and 'time' in col.index.names:
+        time_values = col.index.get_level_values('time')[peaks]
+    else:
+        # Assume the index itself represents time
+        time_values = col.index[peaks]
+
+    r = pd.DataFrame({
+        'prominence': prominence,
+        'time peak': time_values
+    }, index=[col.name]*len(peaks))
+
+    r = r[r.prominence >= cutoff * r.prominence.max()].sort_values('prominence', ascending=False)
+    if len(r) == 0:
+        return pd.DataFrame({'prominence':[np.nan],
+                             'time peak':[np.nan]},
+                            index=[col.name])
+    return r
+
+def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
+    if isinstance(tc, pd.Series):
+        return _get_peaks(tc, cutoff).T
+    elif isinstance(tc, pd.DataFrame):
+        peaks = tc.apply(_get_peaks, cutoff=cutoff)
+        return pd.concat(peaks.tolist()).T
+    else:
+        raise ValueError(f"Expected pandas Series or DataFrame, got {type(tc)}")
 
 
 def get_ss(timeseries):

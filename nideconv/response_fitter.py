@@ -456,7 +456,7 @@ class ResponseFitter(object):
         if remove_incomplete_epochs:
             epochs = epochs[~epochs.isnull().any(1)]
         return epochs
-
+    '''
     def get_time_to_peak(self,
                          oversample=None,
                          cutoff=1.0,
@@ -470,20 +470,92 @@ class ResponseFitter(object):
             ix = ['time peak', 'prominence']
         else:
             ix = ['time peak']
-
+        __import__('pdb').set_trace()
         return self.get_timecourses(oversample=oversample)\
                    .groupby(['event type', 'covariate'])\
                    .apply(get_time_to_peak_from_timecourse,
                           negative_peak=negative_peak,
                           cutoff=cutoff)\
             .loc[(slice(None), slice(None), ix), :]
+    '''
 
-    def get_original_signal(self, melt=False):
+
+    def get_time_to_peak(self, oversample=None, cutoff=1.0, negative_peak=False, include_prominence=False):
+        if include_prominence:
+            ix = ['time peak', 'prominence']
+        else:
+            ix = ['time peak']
+
+        timecourses = self.get_timecourses(oversample=oversample)
+
+        def process_group(group):
+            # In older pandas versions, 'group' might already be the series we need
+            if isinstance(group, pd.Series):
+                return get_time_to_peak_from_timecourse(group, cutoff=cutoff, negative_peak=negative_peak)
+            else:
+                series = pd.Series(group['signal'].values, index=group['time'].values, name=group.name)
+                return get_time_to_peak_from_timecourse(series, cutoff=cutoff, negative_peak=negative_peak)
+
+        result = timecourses.groupby(['event type', 'covariate']).apply(process_group)
+
+        # Check if result is empty
+        if result.empty:
+            print("Warning: No peaks found in any group.")
+            return pd.DataFrame()
+
+        try:
+            # In older pandas versions, this might work differently
+            return result.loc[(slice(None), slice(None), ix), :]
+        except KeyError as e:
+            print(f"Error selecting results: {str(e)}")
+            return result  # Return all results if selection fails
+
+
+
+
+    def get_original_signal_bug(self, melt=False):
         if melt:
             return self.input_signal.reset_index()\
                                     .melt(var_name='roi',
                                           value_name='signal',
                                           id_vars='time')
+        else:
+            return self.input_signal
+
+
+
+    def get_original_signal(self, melt=False):
+        '''
+        if melt and False:
+            return self.input_signal.reset_index()\
+                                    .melt(var_name='roi',
+                                          value_name='value',
+                                          id_vars='time')
+        '''
+        
+
+        if melt:
+            # Step 1: Create a copy of the input signal
+            df = self.input_signal.copy()
+            
+            # Step 2: Reset the index if it's not already a column
+            if 'time' not in df.columns and df.index.name == 'time':
+                df = df.reset_index()
+            
+            # Step 3: Rename 'signal' column if it exists
+            if 'signal' in df.columns:
+                df = df.rename(columns={'signal': 'original_signal'})
+            
+            # Step 4: Perform the melt operation
+            melted = df.melt(id_vars='time', 
+                             var_name='roi', 
+                             value_name='signal')
+            
+            # Step 5: Ensure 'roi' column is 'signal' to match prediction DataFrame
+            melted['roi'] = 'signal'
+            
+            return melted
+
         else:
             return self.input_signal
 
@@ -532,7 +604,6 @@ class ResponseFitter(object):
             'no betas found, please run regression before rsq'
 
     def plot_design_matrix(self, palette=None):
-
         return plot_design_matrix(self.X,
                                   palette=palette)
 

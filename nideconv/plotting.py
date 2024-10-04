@@ -80,9 +80,11 @@ def plot_design_matrix(X, palette=None, vertical=True):
 
     n_regressors = X.shape[1]
     palette = sns.color_palette(palette, n_colors=n_regressors)
-
+    
+    '''
     if len(X.columns.get_level_values('covariate').unique()) == 1:
         X.columns = X.columns.droplevel('covariate')
+    '''
 
     max_reg = (X.max() - X.min()).max()
 

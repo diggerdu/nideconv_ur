@@ -433,7 +433,15 @@ class Event(Regressor):
 
         L = self.get_basis_function(oversample)
 
+        '''
+        __import__('pdb').set_trace()
+
         return self.betas.groupby(level=['event type', 'covariate']).apply(_dotproduct_timecourse, L)
+        '''
+        self.betas.index.names = ['event type', 'covariate', 'basis_function']
+        result = self.betas.groupby(level=['event type', 'covariate']).apply(_dotproduct_timecourse, L)
+        result = result.reset_index()
+        return result
 
     def get_basis_function(self, oversample=1):
 
